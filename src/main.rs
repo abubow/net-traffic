@@ -2,6 +2,7 @@ mod packet;
 mod parser;
 
 use std::path::Path;
+#[allow(unused_imports)]
 use packet::*;
 use parser::parse_pcap;
 fn main() {
