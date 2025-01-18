@@ -243,7 +243,7 @@ fn parse_application_layer(layers: &Value) -> Result<ApplicationData, PcapError>
         (389, _) | (_, 389) => ApplicationProtocol::LDAP,
         (445, _) | (_, 445) => ApplicationProtocol::SMB,
         (464, _) | (_, 464) => ApplicationProtocol::Kerberos,
-        _ => ApplicationProtocol::Custom(format!("PORT_{}_{}", src_port, , dst_port)),
+        _ => ApplicationProtocol::Custom(format!("PORT_{}_{}", src_port, dst_port)),
     };
 
     Ok(ApplicationData {
