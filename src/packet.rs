@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NetworkPacket {
     pub timestamp: DateTime<Utc>,
     pub ethernet_layer: EthernetFrame,
@@ -11,7 +11,7 @@ pub struct NetworkPacket {
 }
 
 /// Ethernet (Layer 2) Frame
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EthernetFrame {
     pub source_mac: [u8; 6],
     pub destination_mac: [u8; 6],
@@ -20,7 +20,7 @@ pub struct EthernetFrame {
 }
 
 /// IPv4 (Layer 3) Packet
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IPv4Packet {
     pub version: u8,          // 4 for IPv4
     pub ihl: u8,             // Internet Header Length
@@ -39,7 +39,7 @@ pub struct IPv4Packet {
 }
 
 /// IPv4 Flags
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IPv4Flags {
     pub reserved: bool,      // Must be zero
     pub dont_fragment: bool,
@@ -47,7 +47,7 @@ pub struct IPv4Flags {
 }
 
 /// TCP (Layer 4) Segment
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TCPSegment {
     pub source_port: u16,
     pub destination_port: u16,
@@ -62,7 +62,7 @@ pub struct TCPSegment {
 }
 
 /// TCP Flags
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TCPFlags {
     pub fin: bool,          // Finish
     pub syn: bool,          // Synchronize
@@ -75,7 +75,7 @@ pub struct TCPFlags {
 }
 
 /// TCP Option
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TCPOption {
     pub kind: u8,
     pub length: u8,
@@ -83,14 +83,14 @@ pub struct TCPOption {
 }
 
 /// Application Layer Data
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ApplicationData {
     pub protocol: ApplicationProtocol,
     pub payload: Vec<u8>,
 }
 
 /// Supported Application Protocols
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ApplicationProtocol {
     HTTP,
     HTTPS,
