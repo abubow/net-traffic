@@ -1,11 +1,7 @@
 use std::collections::HashMap;
-use std::path::Path;
-use std::fs::File;
 use serde::Serialize;
 use chrono::DateTime;
 use chrono::Utc;
-use std::io::prelude::*;
-use serde_json::json;
 use crate::NetworkPacket;
 
 /// Represents a TCP session
