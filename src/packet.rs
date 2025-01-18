@@ -98,6 +98,13 @@ pub enum ApplicationProtocol {
     SSH,
     SMTP,
     DNS,
+    NTP,
+    NetBIOS,
+    IMAP,
+    SNMP,
+    LDAP,
+    SMB,
+    Kerberos,
     Custom(String),
 }
 
@@ -125,6 +132,13 @@ impl NetworkPacket {
             ApplicationProtocol::SSH => "SSH".to_string(),
             ApplicationProtocol::SMTP => "SMTP".to_string(),
             ApplicationProtocol::DNS => "DNS".to_string(),
+            ApplicationProtocol::NTP => "NTP".to_string(),
+            ApplicationProtocol::NetBIOS => "NetBIOS".to_string(),
+            ApplicationProtocol::IMAP => "IMAP".to_string(),
+            ApplicationProtocol::SNMP => "SNMP".to_string(),
+            ApplicationProtocol::LDAP => "LDAP".to_string(),
+            ApplicationProtocol::SMB => "SMB".to_string(),
+            ApplicationProtocol::Kerberos => "Kerberos".to_string(),
             ApplicationProtocol::Custom(proto) => proto.clone(),
         }
     }

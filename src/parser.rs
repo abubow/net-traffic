@@ -225,12 +225,25 @@ fn parse_application_layer(layers: &Value) -> Result<ApplicationData, PcapError>
 
     let protocol = match (src_port, dst_port) {
         (80, _) | (_, 80) => ApplicationProtocol::HTTP,
+        (8080, _) | (_, 8080) => ApplicationProtocol::HTTP,
         (443, _) | (_, 443) => ApplicationProtocol::HTTPS,
+        (20, _) | (_, 20) => ApplicationProtocol::FTP,
         (21, _) | (_, 21) => ApplicationProtocol::FTP,
         (22, _) | (_, 22) => ApplicationProtocol::SSH,
         (25, _) | (_, 25) => ApplicationProtocol::SMTP,
         (53, _) | (_, 53) => ApplicationProtocol::DNS,
-        _ => ApplicationProtocol::Custom(format!("PORT_{}", dst_port)),
+        (69, _) | (_, 69) => ApplicationProtocol::DNS,
+        (123, _) | (_, 123) => ApplicationProtocol::NTP,
+        (137, _) | (_, 137) => ApplicationProtocol::NetBIOS,
+        (138, _) | (_, 138) => ApplicationProtocol::NetBIOS,
+        (139, _) | (_, 139) => ApplicationProtocol::NetBIOS,
+        (143, _) | (_, 143) => ApplicationProtocol::IMAP,
+        (161, _) | (_, 161) => ApplicationProtocol::SNMP,
+        (162, _) | (_, 162) => ApplicationProtocol::SNMP,
+        (389, _) | (_, 389) => ApplicationProtocol::LDAP,
+        (445, _) | (_, 445) => ApplicationProtocol::SMB,
+        (464, _) | (_, 464) => ApplicationProtocol::Kerberos,
+        _ => ApplicationProtocol::Custom(format!("PORT_{}_{}", src_port, , dst_port)),
     };
 
     Ok(ApplicationData {

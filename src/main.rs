@@ -6,7 +6,7 @@ use std::path::Path;
 use packet::*;
 use parser::parse_pcap;
 fn main() {
-    let path = Path::new("src/example/pcap/wps.pcap");
+    let path = Path::new("src/example/pcap/rsasnakeoil2.pcap");
     let res = match parse_pcap(path) {
         Ok(res) => res,
         Err(e) => {
