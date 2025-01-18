@@ -1,5 +1,6 @@
 [package]
 name = "net-trace"
+description = "A network trace parser for pcap files. You can parse packets with all relevant IPv4 and TCP fields. (tshark is required to be installed on your system.)"
 version = "0.1.0"
 edition = "2021"
 
