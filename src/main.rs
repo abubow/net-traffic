@@ -12,7 +12,7 @@ use serde_json::json;
 use packet::*;
 use parser::parse_pcap;
 fn main() {
-    let path = Path::new("src/example/pcap/VLAN6.pcap");
+    let path = Path::new("src/example/pcap/rsasnakeoil2.pcap");
     let res = match parse_pcap(path) {
         Ok(res) => res,
         Err(e) => {
