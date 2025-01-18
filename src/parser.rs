@@ -60,7 +60,7 @@ pub fn parse_pcap<P: AsRef<Path>>(pcap_path: P) -> Result<Vec<NetworkPacket>, Pc
         .output()?;
 
     if !output.status.success() {
-        println!("Error running tshark: {}", String::from_utf8_lossy(&output.stderr).to_string());
+        println!("Error running tshark: {}", String::from_utf8_lossy(&output.stderr));
         return Err(PcapError::ParseError(
             String::from_utf8_lossy(&output.stderr).to_string()
         ));
@@ -77,6 +77,7 @@ pub fn parse_pcap<P: AsRef<Path>>(pcap_path: P) -> Result<Vec<NetworkPacket>, Pc
     Ok(network_packets)
 }
 
+/// Parse a single packet from JSON to NetworkPacket struct
 fn parse_packet_json(json: Value) -> Result<NetworkPacket, PcapError> {
     let layers = json.get("_source")
         .and_then(|src| src.get("layers"))
@@ -210,6 +211,33 @@ fn parse_tcp_layer(layers: &Value) -> Result<TCPSegment, PcapError> {
     })
 }
 
+/// Parse application layer from JSON
+fn parse_application_layer(layers: &Value) -> Result<ApplicationData, PcapError> {
+    // Determine protocol based on ports
+    let src_port = layers.get("tcp.srcport")
+        .and_then(|p| p.as_str())
+        .and_then(|p| p.parse::<u16>().ok())
+        .unwrap_or(0);
+    let dst_port = layers.get("tcp.dstport")
+        .and_then(|p| p.as_str())
+        .and_then(|p| p.parse::<u16>().ok())
+        .unwrap_or(0);
+
+    let protocol = match (src_port, dst_port) {
+        (80, _) | (_, 80) => ApplicationProtocol::HTTP,
+        (443, _) | (_, 443) => ApplicationProtocol::HTTPS,
+        (21, _) | (_, 21) => ApplicationProtocol::FTP,
+        (22, _) | (_, 22) => ApplicationProtocol::SSH,
+        (25, _) | (_, 25) => ApplicationProtocol::SMTP,
+        (53, _) | (_, 53) => ApplicationProtocol::DNS,
+        _ => ApplicationProtocol::Custom(format!("PORT_{}", dst_port)),
+    };
+
+    Ok(ApplicationData {
+        protocol,
+        payload: Vec::new(), // Parse payload from hex dump if needed
+    })
+}
 /// Helper function to parse MAC address string into bytes
 fn parse_mac_address(mac_str: &str) -> [u8; 6] {
     let mut mac = [0u8; 6];
