@@ -1,9 +1,9 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Represents a complete network packet with all layers
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NetworkPacket {
-    pub timestamp: u64,
+    pub timestamp: DateTime<Utc>,
     pub ethernet_layer: EthernetFrame,
     pub ip_layer: IPv4Packet,
     pub tcp_layer: TCPSegment,
