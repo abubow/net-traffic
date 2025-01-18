@@ -60,6 +60,7 @@ pub fn parse_pcap<P: AsRef<Path>>(pcap_path: P) -> Result<Vec<NetworkPacket>, Pc
         .output()?;
 
     if !output.status.success() {
+        println!("Error running tshark: {}", String::from_utf8_lossy(&output.stderr).to_string());
         return Err(PcapError::ParseError(
             String::from_utf8_lossy(&output.stderr).to_string()
         ));
@@ -76,35 +77,29 @@ pub fn parse_pcap<P: AsRef<Path>>(pcap_path: P) -> Result<Vec<NetworkPacket>, Pc
     Ok(network_packets)
 }
 
-/// Parse a single packet from JSON to NetworkPacket struct
 fn parse_packet_json(json: Value) -> Result<NetworkPacket, PcapError> {
     let layers = json.get("_source")
         .and_then(|src| src.get("layers"))
         .ok_or_else(|| PcapError::ParseError("Invalid JSON structure".to_string()))?;
 
-    // Parse timestamp
+    // Parse timestamp - get first element from array
     let timestamp = layers.get("frame.time_epoch")
-    .and_then(|t| t.as_str())
-    .and_then(|t| t.parse::<f64>().ok())
-    .map(|t| {
-        let secs = t.trunc() as i64;
-        let nsecs = (t.fract() * 1_000_000_000.0) as u32;
-        DateTime::<Utc>::from_timestamp(secs, nsecs)
-            .unwrap_or_default()
-    })
-    .ok_or_else(|| PcapError::ParseError("Invalid timestamp".to_string()))?;
+        .and_then(|t| t.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|t| t.as_str())
+        .and_then(|t| t.parse::<f64>().ok())
+        .map(|t| {
+            let secs = t.trunc() as i64;
+            let nsecs = (t.fract() * 1_000_000_000.0) as u32;
+            DateTime::<Utc>::from_timestamp(secs, nsecs)
+                .unwrap_or_default()
+        })
+        .ok_or_else(|| PcapError::ParseError("Invalid timestamp".to_string()))?;
 
-
-    // Parse Ethernet layer
+    // Parse other layers
     let ethernet_layer = parse_ethernet_layer(layers)?;
-    
-    // Parse IP layer
     let ip_layer = parse_ip_layer(layers)?;
-    
-    // Parse TCP layer
     let tcp_layer = parse_tcp_layer(layers)?;
-    
-    // Parse application layer
     let application_layer = parse_application_layer(layers)?;
 
     Ok(NetworkPacket {
@@ -116,31 +111,35 @@ fn parse_packet_json(json: Value) -> Result<NetworkPacket, PcapError> {
     })
 }
 
-/// Parse Ethernet layer from JSON
 fn parse_ethernet_layer(layers: &Value) -> Result<EthernetFrame, PcapError> {
     Ok(EthernetFrame {
         source_mac: parse_mac_address(layers.get("eth.src")
+            .and_then(|mac| mac.as_array())
+            .and_then(|arr| arr.first())
             .and_then(|mac| mac.as_str())
             .ok_or_else(|| PcapError::ParseError("Invalid source MAC".to_string()))?),
         destination_mac: parse_mac_address(layers.get("eth.dst")
+            .and_then(|mac| mac.as_array())
+            .and_then(|arr| arr.first())
             .and_then(|mac| mac.as_str())
             .ok_or_else(|| PcapError::ParseError("Invalid destination MAC".to_string()))?),
         ethertype: layers.get("eth.type")
+            .and_then(|t| t.as_array())
+            .and_then(|arr| arr.first())
             .and_then(|t| t.as_str())
             .and_then(|t| u16::from_str_radix(t, 16).ok())
             .unwrap_or(0x0800),
-        frame_check_sequence: 0, // FCS usually stripped by capture
+        frame_check_sequence: 0,
     })
 }
 
-/// Parse IP layer from JSON
 fn parse_ip_layer(layers: &Value) -> Result<IPv4Packet, PcapError> {
     Ok(IPv4Packet {
         version: 4,
         ihl: 5,
         dscp: 0,
         ecn: 0,
-        total_length: 0, // Calculate based on actual data
+        total_length: 0,
         identification: 0,
         flags: IPv4Flags {
             reserved: false,
@@ -149,78 +148,65 @@ fn parse_ip_layer(layers: &Value) -> Result<IPv4Packet, PcapError> {
         },
         fragment_offset: 0,
         ttl: 64,
-        protocol: 6, // TCP
+        protocol: 6,
         header_checksum: 0,
         source_ip: parse_ip_address(layers.get("ip.src")
+            .and_then(|ip| ip.as_array())
+            .and_then(|arr| arr.first())
             .and_then(|ip| ip.as_str())
             .ok_or_else(|| PcapError::ParseError("Invalid source IP".to_string()))?),
         destination_ip: parse_ip_address(layers.get("ip.dst")
+            .and_then(|ip| ip.as_array())
+            .and_then(|arr| arr.first())
             .and_then(|ip| ip.as_str())
             .ok_or_else(|| PcapError::ParseError("Invalid destination IP".to_string()))?),
         options: Vec::new(),
     })
 }
 
-/// Parse TCP layer from JSON
 fn parse_tcp_layer(layers: &Value) -> Result<TCPSegment, PcapError> {
     let flags = parse_tcp_flags(layers.get("tcp.flags")
+        .and_then(|f| f.as_array())
+        .and_then(|arr| arr.first())
         .and_then(|f| f.as_str())
         .unwrap_or("0x000"));
 
     Ok(TCPSegment {
         source_port: layers.get("tcp.srcport")
+            .and_then(|p| p.as_array())
+            .and_then(|arr| arr.first())
             .and_then(|p| p.as_str())
             .and_then(|p| p.parse().ok())
             .unwrap_or(0),
         destination_port: layers.get("tcp.dstport")
+            .and_then(|p| p.as_array())
+            .and_then(|arr| arr.first())
             .and_then(|p| p.as_str())
             .and_then(|p| p.parse().ok())
             .unwrap_or(0),
         sequence_number: layers.get("tcp.seq")
+            .and_then(|s| s.as_array())
+            .and_then(|arr| arr.first())
             .and_then(|s| s.as_str())
             .and_then(|s| s.parse().ok())
             .unwrap_or(0),
         acknowledgment_number: layers.get("tcp.ack")
+            .and_then(|a| a.as_array())
+            .and_then(|arr| arr.first())
             .and_then(|a| a.as_str())
             .and_then(|a| a.parse().ok())
             .unwrap_or(0),
         data_offset: 5,
         flags,
         window_size: layers.get("tcp.window_size")
+            .and_then(|w| w.as_array())
+            .and_then(|arr| arr.first())
             .and_then(|w| w.as_str())
             .and_then(|w| w.parse().ok())
             .unwrap_or(0),
         checksum: 0,
         urgent_pointer: 0,
-        options: Vec::new(), // Parse TCP options if needed
-    })
-}
-
-/// Parse application layer from JSON
-fn parse_application_layer(layers: &Value) -> Result<ApplicationData, PcapError> {
-    // Determine protocol based on ports
-    let src_port = layers.get("tcp.srcport")
-        .and_then(|p| p.as_str())
-        .and_then(|p| p.parse::<u16>().ok())
-        .unwrap_or(0);
-    let dst_port = layers.get("tcp.dstport")
-        .and_then(|p| p.as_str())
-        .and_then(|p| p.parse::<u16>().ok())
-        .unwrap_or(0);
-
-    let protocol = match (src_port, dst_port) {
-        (80, _) | (_, 80) => ApplicationProtocol::HTTP,
-        (443, _) | (_, 443) => ApplicationProtocol::HTTPS,
-        (21, _) | (_, 21) => ApplicationProtocol::FTP,
-        (22, _) | (_, 22) => ApplicationProtocol::SSH,
-        (25, _) | (_, 25) => ApplicationProtocol::SMTP,
-        (53, _) | (_, 53) => ApplicationProtocol::DNS,
-        _ => ApplicationProtocol::Custom(format!("PORT_{}", dst_port)),
-    };
-
-    Ok(ApplicationData {
-        protocol,
-        payload: Vec::new(), // Parse payload from hex dump if needed
+        options: Vec::new(),
     })
 }
 
