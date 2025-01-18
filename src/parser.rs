@@ -215,10 +215,14 @@ fn parse_tcp_layer(layers: &Value) -> Result<TCPSegment, PcapError> {
 fn parse_application_layer(layers: &Value) -> Result<ApplicationData, PcapError> {
     // Determine protocol based on ports
     let src_port = layers.get("tcp.srcport")
+        .and_then(|p| p.as_array())
+        .and_then(|arr| arr.first())
         .and_then(|p| p.as_str())
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(0);
     let dst_port = layers.get("tcp.dstport")
+        .and_then(|p| p.as_array())
+        .and_then(|arr| arr.first())
         .and_then(|p| p.as_str())
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(0);
